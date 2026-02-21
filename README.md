@@ -86,7 +86,7 @@ python -m src.models.fama_macbeth
 
 ## Author
 
-Zeyu Ding — Postdoctoral Researcher in Statistics, TU Dortmund / Lamarr Institute  
+Sai — Postdoctoral Researcher in Statistics, TU Dortmund / Lamarr Institute  
 Research focus: Scalable Bayesian methods, computational statistics, coreset theory
 
 ## References
