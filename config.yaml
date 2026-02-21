@@ -1,0 +1,42 @@
+# Project configuration
+# All parameters in one place for reproducibility
+
+data:
+  # Tiingo API settings
+  tiingo_base_url: "https://api.tiingo.com"
+  
+  # Universe
+  universe: "sp500"
+  start_date: "2010-01-01"
+  end_date: "2025-12-31"
+  
+  # Data quality
+  min_history_days: 252  # Require at least 1 year of data
+  min_price: 5.0          # Exclude penny stocks
+  
+factors:
+  # Momentum
+  momentum_lookback: 252   # 12 months
+  momentum_skip: 21        # Skip most recent month (short-term reversal)
+  
+  # Volatility
+  volatility_window: 21    # ~1 month of trading days
+  
+  # Size
+  # Market cap used directly from data source
+  
+  # Forward returns (target)
+  forward_return_days: 21  # ~1 month forward return
+  
+backtest:
+  # Rebalance frequency
+  rebalance_freq: "monthly"  # End of month
+  
+  # Portfolio construction
+  n_quantiles: 5            # Quintile portfolios
+  
+  # Transaction costs (one-way, in basis points)
+  transaction_cost_bps: 10  # 10 bps one-way = 20 bps round-trip
+  
+  # Risk-free rate source
+  risk_free: "ken_french"   # Use RF from Ken French library
