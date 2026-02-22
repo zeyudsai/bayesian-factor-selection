@@ -10,8 +10,11 @@ Usage:
     python -m src.data.universe
 """
 
+import io
+
 import pandas as pd
 import polars as pl
+import requests
 
 from src.utils.config import DATA_DIR, get_logger
 
@@ -28,8 +31,18 @@ def fetch_sp500_tickers() -> pl.DataFrame:
     """
     logger.info("Fetching S&P 500 constituents from Wikipedia...")
 
-    # pandas read_html is the most reliable way to parse Wikipedia tables
-    tables = pd.read_html(SP500_WIKI_URL)
+    # Wikipedia blocks default Python user-agent; use a browser-like header
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+    resp = requests.get(SP500_WIKI_URL, headers=headers, timeout=30)
+    resp.raise_for_status()
+
+    tables = pd.read_html(io.StringIO(resp.text))
     df_pd = tables[0]
 
     # Wikipedia uses "Symbol" column; some tickers have dots (BRK.B) which
