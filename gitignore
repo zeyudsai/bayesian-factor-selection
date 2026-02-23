@@ -1,0 +1,29 @@
+# Data files (too large for git)
+data/raw/
+data/processed/
+*.parquet
+
+# Keep external reference data tracked
+!data/external/
+
+# Environment & secrets
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyMC / ArviZ traces
+*.nc

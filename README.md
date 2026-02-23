@@ -2,9 +2,26 @@
 
 A rigorous, end-to-end research framework for equity factor discovery and selection using Bayesian shrinkage and model averaging methods. This project addresses the "factor zoo" problem — the proliferation of spurious factors due to multiple testing and data-mining — by applying principled Bayesian inference to cross-sectional asset pricing.
 
+📄 **[Research Note (PDF)](docs/research_note.pdf)** — Full methodology, results, and discussion
+
 ## Motivation
 
-The academic finance literature has documented hundreds of factors that purportedly predict stock returns (Harvey, Liu & Zhu, 2016). Many of these factors are likely false discoveries resulting from extensive data mining. Traditional frequentist approaches (e.g., single-factor t-tests) are poorly equipped to handle this multiplicity problem. This project applies **Bayesian Model Averaging (BMA)** and **Bayesian shrinkage priors** (e.g., Horseshoe, Finnish Horseshoe) to perform disciplined factor selection, providing posterior inclusion probabilities rather than binary significance decisions.
+The academic finance literature has documented hundreds of factors that purportedly predict stock returns (Harvey, Liu & Zhu, 2016). Many of these factors are likely false discoveries resulting from extensive data mining. Traditional frequentist approaches (e.g., single-factor t-tests) are poorly equipped to handle this multiplicity problem. This project applies **Bayesian shrinkage priors** (regularized Horseshoe) to perform disciplined factor selection, providing posterior inclusion probabilities rather than binary significance decisions.
+
+## Key Findings
+
+| Factor | Fama-MacBeth t-stat | Bayesian PIP | Included? |
+|--------|:-------------------:|:------------:|:---------:|
+| Momentum (12-1m) | 1.20 | 19.8% | ✗ |
+| Realized Volatility | 2.61*** | 100.0% | ✓ |
+| Size (log $Vol) | −3.06*** | 92.5% | ✓ |
+| Short-Term Reversal | −0.21 | 7.6% | ✗ |
+
+The Horseshoe prior identifies **Size** and **Realized Volatility** as the two factors with credible predictive power, while aggressively shrinking Momentum and Short-Term Reversal toward zero.
+
+<p align="center">
+  <img src="docs/figures/pip_summary.png" width="500" alt="Posterior Inclusion Probabilities">
+</p>
 
 ## Research Pipeline
 
@@ -21,79 +38,98 @@ Raw Market Data → Data Cleaning → Factor Construction → Fama-MacBeth Basel
 ```
 bayesian-factor-selection/
 ├── src/
-│   ├── data/           # Data ingestion, cleaning, universe construction
-│   ├── factors/        # Factor definitions and computation
-│   ├── models/         # Bayesian selection models (BMA, shrinkage priors)
-│   ├── backtest/       # Walk-forward validation and performance analysis
-│   └── utils/          # Shared utilities, config, logging
-├── data/
-│   ├── raw/            # Raw API downloads (git-ignored)
-│   ├── processed/      # Cleaned panel data (git-ignored)
-│   └── external/       # Ken French factors, FRED macro data
-├── notebooks/          # Exploratory analysis and result visualization
-├── tests/              # Unit and integration tests
-├── configs/            # YAML configuration files
+│   ├── data/               # Data ingestion, cleaning, universe construction
+│   │   ├── universe.py     # S&P 500 constituent scraper
+│   │   ├── fetch_prices.py # Tiingo API price downloader (resumable)
+│   │   ├── french_factors.py # Ken French benchmark factors
+│   │   └── prepare_panel.py  # Data cleaning & return computation
+│   ├── factors/
+│   │   └── compute_factors.py # Factor definitions (MOM, VOL, SIZE, STR)
+│   ├── models/
+│   │   ├── fama_macbeth.py      # Frequentist baseline (Newey-West SEs)
+│   │   ├── bayesian_selection.py # Horseshoe prior factor selection (PyMC)
+│   │   └── plot_results.py      # Publication-quality result figures
+│   ├── backtest/
+│   │   └── walk_forward.py  # Walk-forward OOS backtest with TC modeling
+│   └── utils/
+│       └── config.py        # Configuration, logging, API key management
+├── configs/
+│   └── config.yaml          # All hyperparameters in one place
+├── docs/
+│   ├── research_note.pdf    # 2-page research note
+│   └── figures/             # Result figures
+├── data/                    # Git-ignored (too large)
+├── notebooks/               # Exploratory analysis
+├── tests/                   # Unit tests
+├── requirements.txt
 └── README.md
 ```
 
 ## Data & Known Limitations
 
-- **Price data**: Tiingo API (adjusted OHLCV, 2010–2025)
+- **Price data**: Tiingo API (adjusted OHLCV, 2010–2025, 495 tickers)
 - **Universe**: Current S&P 500 constituents only
-- **⚠️ Survivorship bias**: Due to data vendor limitations, the backtest universe is restricted to stocks that are *currently* in the S&P 500. This introduces survivorship bias, as delisted or removed stocks are excluded. Results should be interpreted with this caveat. A production-grade version would use point-in-time constituent lists from CRSP or similar providers.
-- **Fundamental data**: Market cap from Tiingo; accounting data not yet included
+- **⚠️ Survivorship bias**: The backtest universe is restricted to stocks that are *currently* in the S&P 500. Delisted or removed stocks are excluded. Results should be interpreted with this caveat.
 - **Factor benchmark**: Ken French Data Library (Fama-French 5 factors + Momentum)
-
-## Tech Stack
-
-- **Python 3.11+**
-- **Polars** for high-performance data wrangling on panel data
-- **Pandas** for statistical modeling interfaces (statsmodels, scipy)
-- **NumPy / SciPy** for numerical computation
-- **statsmodels** for Fama-MacBeth regression baseline
-- **PyMC / NumPyro** for Bayesian inference (upcoming)
-- **Matplotlib / Seaborn** for publication-quality figures
 
 ## Setup
 
 ```bash
-pip install polars pandas numpy scipy statsmodels requests python-dotenv pyyaml
-```
+# Clone
+git clone https://github.com/zeyudsai/bayesian-factor-selection.git
+cd bayesian-factor-selection
 
-Set your Tiingo API key:
-```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Set Tiingo API key
 echo "TIINGO_API_KEY=your_key_here" > .env
 ```
 
 ## Usage
 
+Run the full pipeline step by step:
+
 ```bash
-# Step 1: Download S&P 500 universe
-python -m src.data.universe
+# Stage 1: Data
+python -m src.data.universe          # Fetch S&P 500 constituents
+python -m src.data.french_factors    # Download Ken French benchmark factors
+python -m src.data.fetch_prices      # Download 15 years of daily prices (resumable)
+python -m src.data.prepare_panel     # Clean data, compute returns
 
-# Step 2: Fetch price data from Tiingo
-python -m src.data.fetch_prices
+# Stage 2: Factor Construction & Baseline
+python -m src.factors.compute_factors  # Compute MOM, VOL, SIZE, STR factors
+python -m src.models.fama_macbeth      # Fama-MacBeth regression (sanity check)
 
-# Step 3: Clean and prepare panel data
-python -m src.data.prepare_panel
+# Stage 3: Bayesian Factor Selection
+python -m src.models.bayesian_selection  # Horseshoe prior MCMC (~3 min)
+python -m src.models.plot_results        # Generate result figures
 
-# Step 4: Compute factors
-python -m src.factors.compute_factors
-
-# Step 5: Run Fama-MacBeth baseline
-python -m src.models.fama_macbeth
+# Stage 4: Out-of-Sample Backtest
+python -m src.backtest.walk_forward    # Walk-forward backtest with transaction costs
 ```
 
-## Author
+## Tech Stack
 
-Zeyu Ding — Postdoctoral Researcher in Statistics, TU Dortmund / Lamarr Institute  
-Research focus: Scalable Bayesian methods, computational statistics, coreset theory
+- **Python 3.11+**
+- **Polars** — High-performance panel data operations
+- **Pandas / NumPy / SciPy** — Statistical modeling
+- **PyMC** — Bayesian inference via MCMC (NUTS sampler)
+- **ArviZ** — Posterior diagnostics and visualization
+- **Matplotlib** — Publication-quality figures
 
 ## References
 
-- Harvey, C. R., Liu, Y., & Zhu, H. (2016). *...and the Cross-Section of Expected Returns.* Review of Financial Studies.
+- Carvalho, C. M., Polson, N. G., & Scott, J. G. (2010). *The Horseshoe Estimator for Sparse Signals.* Biometrika.
 - Fama, E. F., & MacBeth, J. D. (1973). *Risk, Return, and Equilibrium: Empirical Tests.* Journal of Political Economy.
+- Harvey, C. R., Liu, Y., & Zhu, H. (2016). *...and the Cross-Section of Expected Returns.* Review of Financial Studies.
 - Piironen, J., & Vehtari, A. (2017). *Sparsity information and regularization in the horseshoe and other shrinkage priors.* Electronic Journal of Statistics.
+
+## Author
+
+**Zeyu Ding** — Postdoctoral Researcher in Statistics  
+TU Dortmund University / Lamarr Institute for Machine Learning and AI  
+Research focus: Scalable Bayesian methods, computational statistics, coreset theory
 
 ---
 
