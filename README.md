@@ -23,6 +23,27 @@ The Horseshoe prior identifies **Size** and **Realized Volatility** as the two f
   <img src="docs/figures/pip_summary.png" width="500" alt="Posterior Inclusion Probabilities">
 </p>
 
+## Out-of-Sample Performance (Tear Sheet)
+
+Using the Bayesian PIP-weighted composite signal, a walk-forward, monthly-rebalanced Long-Short (Quintile 5 minus Quintile 1) portfolio was constructed. The strategy demonstrates high resilience to transaction costs and a highly desirable **positive skewness**, hedging against tail-risk blowups.
+
+| Metric (Net of 10 bps TC) | Q5 (Long Leg) | Q1 (Short Leg) | Long-Short Spread |
+| :--- | :--- | :--- | :--- |
+| **Annualized Return** | 24.54% | 12.97% | **10.74%** |
+| **Annualized Volatility** | 22.30% | 11.71% | **16.98%** |
+| **Sharpe Ratio** | 1.11 | 1.11 | **0.69** |
+| **Max Drawdown** | -28.21% | -14.23% | **-23.95%** |
+| **Skewness** | +0.10 | -0.28 | **+0.51** |
+
+<p align="center">
+  <img src="docs/figures/backtest_results.png" width="800" alt="Walk-forward Backtest Performance">
+</p>
+
+## Methodological Highlights
+
+- **The High-Volatility "Anomaly"**: Contrary to the traditional low-volatility anomaly, our model assigned a 100% PIP and a positive coefficient to Realized Volatility. This accurately captures the market regime of the 2010–2025 S&P 500, where high-volatility effectively served as a proxy for the mega-cap tech (High Beta) rally.
+- **Taming the "Funnel of Hell"**: The hierarchical nature of the Horseshoe prior introduces severe geometric distortions during MCMC sampling. We actively monitored and addressed NUTS sampler divergences, laying the groundwork for non-centered parameterizations to stabilize the posterior geometry.
+
 ## Research Pipeline
 
 ```
